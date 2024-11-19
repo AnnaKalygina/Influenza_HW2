@@ -1,1 +1,86 @@
-This is the lab journal for the project in deep sequencing
+This is the lab journal for the project on Influenza vaccines.
+
+### Fetching and inspecting data
+The viral sample reads are downloaded from the NCBI Sequence Read Archive
+
+``` bash
+wget http://ftp.sra.ebi.ac.uk/vol1/fastq/SRR170/001/SRR1705851/
+```
+
+The reference sequence for the hemagglutinin (HA) gene of an Influenza A virus was copied from [NIH](https://www.ncbi.nlm.nih.gov/nuccore/KF848938.1?report=fasta):
+``` bash
+echo ">KF848938.1 Influenza A virus (A/USA/RVD1_H3/2011(H3N2)) segment 4 hemagglutinin (HA) gene, partial cds
+CAAAAACTTCCTGGAAATGACAACAGCACGGCAACGCTGTGCCTTGGGCACCATGCAGTGCCAAACGGAA
+CAATAGTGAAAACAATCACGAATGACCAAATTGAAGTTACTAATGCCACTGAGCTGGTTCAGAGTTCCTC
+AACAGGTGAAATATGCAACAGTCCTCATCAGATCCTTGATGGAGAAAACTGCACACTAATAGATGCTCTA
+TTGGGAGACCCTCAGTGTGATGGCTTCCAAAACAAGAAATGGGACCTTTTTGTTGAACGAAGCAAAGCCC
+ACAGCAACTGTTACCCTTATGATGTGCCGGATTATGCCTCCCTTAGGTCACTAGTTGCCTCATCCGGCAC
+ACTGGAGTTTAACAATGAAAGCTTCAATTGGACTGGAGTCACTCAAAACGGAACAAGCTCTGCTTGCATA
+AGGAGATCTAATAATAGTTTCTTTAGTAGATTGAATTGGTTGACCCACTTAAACTTCAAATACCCAGCAT
+TGAACGTGACTATGCCAAACAATGAACAATTTGACAAATTGTACATTTGGGGGGTTCACCACCCGGGTAC
+GGACAAGGACCAAATCTTCCTGTATGCTCAAGCAGCAGGAAGAATCACAGTATCTACCAAAAGAAGCCAA
+CAAGCTGTAATTCCGAATATCGGATCTAGACCCAGAGTAAGGAATATCCCTAGCAGAGTAAGCATCTATT
+GGACAATAGTAAAACCGGGAGACATACTTTTGATTAACAGCACAGGGAATCTAATTGCTCCTAGGGGTTA
+CTTTAAAATACGAAGTGGGAAAAGCTCAATAATGAGATCAGATGCACCCATTGGCAAATGCAATTCTGCA
+TGCATCACTCCAAATGGAAGCATTCCCAATGACAAACCATTCCAAAATGTAAACAGGATCACATACGGGG
+CCTGTCCCAGATATGTTAAGCAAAACACTCTGAAATTGGCAACAGGAATGAGAAATGTACCAGAGAAACA
+AACTAGAGGCATATTTGGCGCAATAGCTGGTTTCATAGAAAATGGTTGGGAGGGAATGGTGGATGGTTGG
+TACGGTTTCAGGCATCAAAATTCTGAGGGAAGGGGACAAGCAGCAGATCTCAAAAGCACTCAAGCAGCAA
+TCGATCAAATCAATGGGAAGCTGAATAGATTGATCGGGAAAACCAACGAGAAATTCCATCAGATTGAAAA
+AGAATTCTCAGAAGTCGAAGGGAGAATTCAGGACCTTGAGAAATATGTTGAGGACACTAAAATAGATCTA
+TGGTCATACAACGCGGAGCTTCTTGTTGCCCTGGAGAACCAACACACAATTGATCTAACTGACTCAGAAA
+TGAACAAATTGTTTGAAAAAACAAAGAAGCAACTGAGGGAAAATGCTGAGGATATGGGCAATGGTTGTTT
+CAAAATATACCACAAATGTGACAATGCCTGCATAGGATCAATCAGAAATGGAACTTATGACCACGATGTG
+TACAGAGATGAAGCATTAAACAACCGATTCCAGATCAAGGGAGTTGAGCTGAAGTCAGGGTACAAAGATT
+GGATCCTATGGATTTCCTTTGCCATATCATGTTTTTTGCTTTGTGTTGCTTTGTTGGGGTTCATCATGTG
+GGCCTGCCAAAAAGGCAACATTAGGTGCAACATTTGCATTTGAGTGCATTAATTA
+" > HA_influenza.fa
+```
+Inspecting the quality of reads using FASTQC:
+``` bash
+fastqc SRR1705851.fastq.gz
+```
+
+### Alignment
+``` bash
+bwa index HA_influenza.fa
+bwa mem HA_influenza.fa SRR1705851.fastq.gz | samtools view -S -b - | samtools sort -o alignment_sorted.bam
+samtools index alignment_sorted.bam
+samtools mpileup -d 10000 -f HA_influenza.fa alignment_sorted.bam > alignment.mpileup
+
+```
+
+Generating mile.up:
+```
+samtools mpileup -d 10000 -f HA_influenza.fa alignment_sorted.bam > alignment.mpileup
+```
+### Identifying mutations
+Common variants:
+```
+varscan mpileup2snp alignment.mpileup --min-var-freq 0.95 --output-vcf 1 > common_variants.vcf
+awk '/^#/ {next} {print $1, $2, $4, $5, $10}' common_variants.vcf > common_variants_summary.txt
+
+```
+
+Rare variants:
+```
+varscan mpileup2snp alignment.mpileup --min-var-freq 0.001 --output-vcf 1 > rare_variants.vcf
+awk '/^#/ {next} {print $1, $2, $4, $5, $10}' rare_variants.vcf > rare_variants_summary.txt
+```
+
+### Inspecting and aligning the control sample sequencing data
+Downloading the FASTQ files for the control samples from SRA:
+```
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR170/008/SRR1705858/SRR1705858.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR170/009/SRR1705859/SRR1705859.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR170/000/SRR1705860/SRR1705860.fastq.gz
+
+```
+
+Aligning:
+```
+bwa mem HA_influenza.fa SRR1705858.fastq.gz | samtools view -S -b - | samtools sort -o SRR1705858_sorted.bam
+bwa mem HA_influenza.fa SRR1705859.fastq.gz | samtools view -S -b - | samtools sort -o SRR1705859_sorted.bam
+bwa mem HA_influenza.fa SRR1705860.fastq.gz | samtools view -S -b - | samtools sort -o SRR1705860_sorted.bam
+
+```

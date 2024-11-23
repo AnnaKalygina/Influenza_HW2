@@ -1,0 +1,14 @@
+Mean Frequency of control 60: 0.00250164
+Mean Frequency of control 59: 0.00236923
+Mean Frequency of control 58: 0.00256491
+
+Mean: 0.00247859333333333333
+
+Standard Deviation of control 60: 0.00078049
+Standard Deviation of control 59: 0.000523764
+Standard Deviation of control 58: 0.000717259
+
+Standard deviation: 0.00067383766666666666
+Standard deviation * 3: 0.00202151299999999998
+Lower boundary: 0.000457080333333333350
+Upper boundary: 0.004500106333333333310
